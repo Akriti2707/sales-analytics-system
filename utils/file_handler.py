@@ -87,3 +87,78 @@ def parse_transactions(raw_lines):
     return transactions
 
 
+def validate_and_filter(transactions, region=None, min_amount=None, max_amount=None):
+    """
+    Validates transactions and applies optional filters.
+    """
+
+    total_input = len(transactions)
+    valid_transactions = []
+    invalid_count = 0
+
+    # Step 1: Validate transaction rules
+    for tx in transactions:
+        # Validation rules
+        if tx["Quantity"] <= 0:
+            invalid_count += 1
+            continue
+        if tx["UnitPrice"] <= 0:
+            invalid_count += 1
+            continue
+        if not tx["TransactionID"].startswith("T"):
+            invalid_count += 1
+            continue
+        if not tx["ProductID"].startswith("P"):
+            invalid_count += 1
+            continue
+        if not tx["CustomerID"].startswith("C"):
+            invalid_count += 1
+            continue
+        if tx["Region"] == "" or tx["CustomerID"] == "":
+            invalid_count += 1
+            continue
+
+        valid_transactions.append(tx)
+
+    # Summary counters for filters
+    filtered_by_region = 0
+    filtered_by_amount = 0
+
+    # Step 2: Apply region filter (optional)
+    if region is not None:
+        filtered_region_list = []
+        for tx in valid_transactions:
+            if tx["Region"] == region:
+                filtered_region_list.append(tx)
+            else:
+                filtered_by_region += 1
+        valid_transactions = filtered_region_list
+
+    # Step 3: Apply amount filter (optional)
+    if min_amount is not None or max_amount is not None:
+        filtered_amount_list = []
+        for tx in valid_transactions:
+            amount = tx["Quantity"] * tx["UnitPrice"]
+
+            if min_amount is not None and amount < min_amount:
+                filtered_by_amount += 1
+                continue
+
+            if max_amount is not None and amount > max_amount:
+                filtered_by_amount += 1
+                continue
+
+            filtered_amount_list.append(tx)
+
+        valid_transactions = filtered_amount_list
+
+    # Build summary dictionary
+    filter_summary = {
+        "total_input": total_input,
+        "invalid": invalid_count,
+        "filtered_by_region": filtered_by_region,
+        "filtered_by_amount": filtered_by_amount,
+        "final_count": len(valid_transactions),
+    }
+
+    return valid_transactions, invalid_count, filter_summary
