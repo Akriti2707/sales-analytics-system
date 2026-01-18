@@ -211,3 +211,36 @@ def find_peak_sales_day(transactions):
     return (peak_date, stats["revenue"], stats["transaction_count"])
 
 
+def low_performing_products(transactions, threshold=10):
+    """
+    Identifies products with low sales.
+    """
+
+    product_stats = {}
+
+    # Step 1: Aggregate quantities & revenue per product
+    for tx in transactions:
+        name = tx["ProductName"]
+        qty = tx["Quantity"]
+        revenue = tx["Quantity"] * tx["UnitPrice"]
+
+        if name not in product_stats:
+            product_stats[name] = {
+                "total_qty": 0,
+                "total_revenue": 0.0
+            }
+
+        product_stats[name]["total_qty"] += qty
+        product_stats[name]["total_revenue"] += revenue
+
+    # Step 2: Filter products below threshold
+    low_products = [
+        (name, stats["total_qty"], stats["total_revenue"])
+        for name, stats in product_stats.items()
+        if stats["total_qty"] < threshold
+    ]
+
+    # Step 3: Sort ascending by total_qty
+    low_products.sort(key=lambda x: x[1])
+
+    return low_products
